@@ -42,13 +42,13 @@
 #define DHTTYPE DHT11   // DHT 11
 
 // LoRaWAN NwkSKey, network session key
-static const PROGMEM u1_t NWKSKEY[16] = { 0x6E, 0x25, 0x85, 0x31, 0xCF, 0xF8, 0x06, 0x61, 0xF8, 0x45, 0x25, 0xB8, 0xB9, 0x6F, 0x65, 0xEB };// { 0x?? ... 16 bytes total ... 0x?? }; // copy from TTN device page, in { 0x?? ... } msb format
+static const PROGMEM u1_t NWKSKEY[16] = { REPLACE_ME }; // copy from TTN device page, in { 0x?? ... } msb format
 
 // LoRaWAN AppSKey, application session key
-static const u1_t PROGMEM APPSKEY[16] = { 0xD4, 0xEE, 0x26, 0x5F, 0x78, 0xCD, 0x37, 0xA1, 0x7C, 0x2D, 0x50, 0x56, 0xA3, 0x6E, 0x9C, 0xCD }; //{ 0x?? ... 16 bytes total ... 0x?? }; // copy from TTN device page, in { 0x?? ... } msb format
+static const u1_t PROGMEM APPSKEY[16] = { REPLACE_ME }; // copy from TTN device page, in { 0x?? ... } msb format
 
 // LoRaWAN end-device address (DevAddr)
-static const u4_t DEVADDR = 0x26011DCE ; // copy from TTN device page, in 0x???????? format
+static const u4_t DEVADDR = 0xREPLACE_ME; // copy from TTN device page, in 0x???????? format
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
