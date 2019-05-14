@@ -1,5 +1,6 @@
 
 /*******************************************************************************
+ * Mostly derived from example distributed with arduino-LMIC 
  * Copyright (c) 2015 Thomas Telkamp and Matthijs Kooijman
  *
  * Permission is hereby granted, free of charge, to anyone
@@ -8,14 +9,15 @@
  * including, but not limited to, copying, modification and redistribution.
  * NO WARRANTY OF ANY KIND IS PROVIDED.
  *
- * This example sends a valid LoRaWAN packet with payload "Hello,
- * world!", using frequency and encryption settings matching those of
- * the The Things Network.
+ * This example:
+ *    - Gathers sensor data from a Grove T&H sensor (DHT11)
+ *    - Uses CayenneLPP as payload format
+ *    - Uses ABP mode of LoRaWAN to transmit data
+ *    - Using frequency and encryption settings matching those of
+ * the The Things Network (EU 868MHz).
  *
  * This uses ABP (Activation-by-personalisation), where a DevAddr and
- * Session keys are preconfigured (unlike OTAA, where a DevEUI and
- * application key is configured, while the DevAddr and session keys are
- * assigned/generated in the over-the-air-activation procedure).
+ * Session keys are preconfigured.
  *
  * Note: LoRaWAN per sub-band duty-cycle limitation is enforced (1% in
  * g1, 0.1% in g2), but not the TTN fair usage policy (which is probably
@@ -29,28 +31,24 @@
  * Do not forget to define the radio type correctly in config.h.
  *
  *******************************************************************************/
-
 #include <lmic.h>
+#define CFG_eu868 1
 #include <hal/hal.h>
 #include <SPI.h>
 #include <CayenneLPP.h>
 
-#include "DHT.h"
-#define DHTPIN 9     // what pin we're connected to
+#include <DHT.h>
+#define DHTPIN 9     // what pin we're connected to (E.g. D9 on feather (but if using the grove adapter, it's actually labelled D4))
 #define DHTTYPE DHT11   // DHT 11
 
 // LoRaWAN NwkSKey, network session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
-static const PROGMEM u1_t NWKSKEY[16] = { 0x6E, 0x25, 0x85, 0x31, 0xCF, 0xF8, 0x06, 0x61, 0xF8, 0x45, 0x25, 0xB8, 0xB9, 0x6F, 0x65, 0xEB };
+static const PROGMEM u1_t NWKSKEY[16] = { 0x6E, 0x25, 0x85, 0x31, 0xCF, 0xF8, 0x06, 0x61, 0xF8, 0x45, 0x25, 0xB8, 0xB9, 0x6F, 0x65, 0xEB };// { 0x?? ... 16 bytes total ... 0x?? }; // copy from TTN device page, in { 0x?? ... } msb format
 
 // LoRaWAN AppSKey, application session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
-static const u1_t PROGMEM APPSKEY[16] = { 0xD4, 0xEE, 0x26, 0x5F, 0x78, 0xCD, 0x37, 0xA1, 0x7C, 0x2D, 0x50, 0x56, 0xA3, 0x6E, 0x9C, 0xCD };
+static const u1_t PROGMEM APPSKEY[16] = { 0xD4, 0xEE, 0x26, 0x5F, 0x78, 0xCD, 0x37, 0xA1, 0x7C, 0x2D, 0x50, 0x56, 0xA3, 0x6E, 0x9C, 0xCD }; //{ 0x?? ... 16 bytes total ... 0x?? }; // copy from TTN device page, in { 0x?? ... } msb format
 
 // LoRaWAN end-device address (DevAddr)
-static const u4_t DEVADDR = 0x26011DCE ; // <-- Change this address for every node!
+static const u4_t DEVADDR = 0x26011DCE ; // copy from TTN device page, in 0x???????? format
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
@@ -63,14 +61,17 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 60;
+const unsigned TX_INTERVAL = 30;
 
 // Pin mapping
 const lmic_pinmap lmic_pins = {
     .nss = 8,
     .rxtx = LMIC_UNUSED_PIN,
     .rst = 4,
-    .dio = {3, 5, LMIC_UNUSED_PIN},
+    .dio = {3, 11, LMIC_UNUSED_PIN},
+    .rxtx_rx_active = 0,
+    .rssi_cal = 8, // LBT cal for the Adafruit Feather M0 LoRa, in dB
+    .spi_freq = 8000000
 };
 
 DHT dht(DHTPIN, DHTTYPE);
@@ -97,9 +98,6 @@ void onEvent (ev_t ev) {
             break;
         case EV_JOINED:
             Serial.println(F("EV_JOINED"));
-            break;
-        case EV_RFU1:
-            Serial.println(F("EV_RFU1"));
             break;
         case EV_JOIN_FAILED:
             Serial.println(F("EV_JOIN_FAILED"));
@@ -135,8 +133,12 @@ void onEvent (ev_t ev) {
         case EV_LINK_ALIVE:
             Serial.println(F("EV_LINK_ALIVE"));
             break;
+        case EV_TXSTART:
+            Serial.println(F("EV_TXSTART"));
+            break;
          default:
-            Serial.println(F("Unknown event"));
+            Serial.print(F("Unknown event: "));
+            Serial.println(ev, DEC);
             break;
     }
 }
@@ -159,17 +161,12 @@ void do_send(osjob_t* j){
 }
 
 void setup() {
+    delay(2000);
     Serial.begin(115200);
     Serial.println(F("Starting"));
-
+    Serial.flush();
+    
     dht.begin();
-
-    #ifdef VCC_ENABLE
-    // For Pinoccio Scout boards
-    pinMode(VCC_ENABLE, OUTPUT);
-    digitalWrite(VCC_ENABLE, HIGH);
-    delay(1000);
-    #endif
 
     // LMIC init
     os_init();

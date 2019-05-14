@@ -1,32 +1,18 @@
-// Example testing sketch for various DHT humidity/temperature sensors
-// Written by ladyada, public domain
+// Example testing sketch for various DHT11 Temp & Humidity Sensor
+// Derived from an example written by ladyada, public domain
 
 #include "DHT.h"
 
-#define DHTPIN 9     // what pin we're connected to
+#define DHTPIN 9     // Digital Pin 9 on the Feather M0 maps to D2 on the Adapter Board
 
-// Uncomment whatever type you're using!
 #define DHTTYPE DHT11   // DHT 11 
-//#define DHTTYPE DHT22   // DHT 22  (AM2302)
-//#define DHTTYPE DHT21   // DHT 21 (AM2301)
-
-// Connect pin 1 (on the left) of the sensor to +5V
-// Connect pin 2 of the sensor to whatever your DHTPIN is
-// Connect pin 4 (on the right) of the sensor to GROUND
-// Connect a 10K resistor from pin 2 (data) to pin 1 (power) of the sensor
 
 DHT dht(DHTPIN, DHTTYPE);
 
 void setup() 
 {
-
     Serial.begin(9600); 
     Serial.println("DHTxx test!");
-
-    /*if using WIO link,must pull up the power pin.*/
-    // pinMode(PIN_GROVE_POWER, OUTPUT);
-    // digitalWrite(PIN_GROVE_POWER, 1);
-
     dht.begin();
 }
 
